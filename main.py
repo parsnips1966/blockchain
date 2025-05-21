@@ -1,6 +1,9 @@
 import hashlib
 import json
+from textwrap import dedent
 from time import time
+from uuid import uuid4
+from flask import Flask
 
 
 class Blockchain:
@@ -20,7 +23,7 @@ class Blockchain:
         block = {
             "index": len(self.chain) + 1,
             "timestamp": time(),
-            "transactions": self.current_transaction,
+            "transactions": self.current_transactions,
             "proof": proof,
             "previous_hash": previous_hash or self.hash(self.chain[-1])
         }
@@ -51,15 +54,39 @@ class Blockchain:
         :param block: <dict> Block
         :return: <str>
         """
-        print(block)
-        print(json.dumps(block, sort_keys=True))
         block_string = json.dumps(block, sort_keys=True).encode()
-        print(block_string)
-        return hashlib.sha256(block_string).hex_digest()
+        return hashlib.sha256(block_string).hexdigest()
 
     @property
     def last_block(self):
         return self.chain[-1]
 
+    def proof_of_work(self, last_proof):
+        """
+        Simple Proof of Work Algorithm:
+         - Find a number p' such that hash(pp') contains 4 trailing nines, where p is the previous p'
+         - p is the previous proof, and p' is the new proof
+        :param last_proof: <int>
+        :return: <int>
+        """
+        proof = 0
+        while not self.valid_proof(last_proof, proof):
+            proof += 1
+        return proof
+
+    @staticmethod
+    def valid_proof(last_proof, proof):
+        """
+        Validates the Proof: Does hash(last_proof, proof) contain 4 trailing nines?
+        :param last_proof: <int> Previous Proof
+        :param proof: <int> Current Proof
+        :return: <bool> True if correct, False if not.
+        """
+        guess = f"{last_proof}{proof}".encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+        return guess_hash[-4:] == "9999"
+
+
 if __name__ == "__main__":
-    blockchain = Blockchain()
+    app = Flask(__name__)
+    print(uuid4())
